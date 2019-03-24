@@ -9,18 +9,17 @@ class Position(object):
     self.ave_return = ave_return/100.0
     self.std_dev = std_dev/100.0
 
-  def buy(self, amount):
+  def trade(self, amount):
     self.value += amount
-
-  def sell(self, amount):
-    self.value -= amount
     if self.value < 0.0:
       self.value = 0.0
 
   # Simulate 1 time unit:
   def simulate(self):
     # Calculate return as ave return + normal distribution of std deviation:
-    this_return = self.ave_return*self.value + numpy.random.normal(0, self.value*self.std_dev)
+    this_return = 0.0
+    if self.value > 0.0:
+      this_return = self.ave_return*self.value + numpy.random.normal(0, self.value*self.std_dev)
     self.value = self.value + this_return
     if self.value < 0.0:
       self.value = 0.0
@@ -37,8 +36,9 @@ class Portfolio(object):
     self.positions = positions
 
     assert len(weights)==len(positions), "The number of weights must equal the number of positions"
+    assert value >= 0.0, "Initial value must be positive or zero."
 
-    self.buy(value)
+    self.trade(value)
 
   # Simulate 1 time unit:
   def simulate(self):
@@ -48,16 +48,24 @@ class Portfolio(object):
   def value(self):
     return sum([p.value for p in self.positions])
 
-  def buy(self, amount):
+  def trade(self, amount):
     for w, p in zip(self.weights, self.positions):
-      p.buy(amount*w)
-
-  def sell(self, amount):
-    for w, p in zip(self.weights, self.positions):
-      p.sell(amount*w)
+      p.trade(amount*w)
 
   def rebalance(self):
-    pass
+    value = self.value()
+
+    for w, p in zip(self.weights, self.positions):
+      current_weight = p.value/value
+      new_value = p.value*w/current_weight
+      correction = new_value-p.value
+      p.trade(correction)
+
+    new_value = self.value()
+
+    # Make sure rebalancing didn't change total balance:
+    assert new_value < value + 1.0, str(new_value) + " < " + str(value) + " + 1.0"
+    assert new_value > value - 1.0, str(new_value) + " > " + str(value) + " - 1.0"
 
   def __repr__(self):
     value = self.value()
@@ -87,22 +95,14 @@ class Scenario(object):
     self.portfolio = portfolio
     self.history = [copy.deepcopy(portfolio)]
     self.returns = []
+    self.inflation = []
 
-  def simulate(self, buy=0.0, sell=0.0, rebalance=True, inflation_correct=True):
-    # Sell some of the portfolio before simulation, worst case:
-    if sell > 0.0:
-      self.portfolio.sell(sell)
-
-    # Simulate a time unit:
-    self.portfolio.simulate()
-
+  def simulate(self, addition=0.0, rebalance=True):
     # Buy more of the portfolio, after simulation, worst case:
-    if buy > 0.0:
-      self.portfolio.buy(buy)
+    self.portfolio.trade(addition)
 
-    # Correct porfolio for inflation in today's dollars:
-    if inflation_correct:
-      pass # TODO sell inflated amount
+    # Simulate a year of growth:
+    self.portfolio.simulate()
 
     # Rebalance portfolio to match original allocation weights:
     if rebalance:
@@ -113,14 +113,29 @@ class Scenario(object):
     return_perc = (self.history[-1].value() - self.history[-2].value())/self.history[-2].value()
     self.returns.append(return_perc)
 
-  def simulate_for(self, num_years, buy_per=0, sell_per=0, rebalance=True, inflation_correct=True):
+  def simulate_for(self, num_years, addition=0.0, addition_increase_perc=0.0, rebalance=True):
     for x in range(num_years):
-      self.simulate(buy_per, sell_per, rebalance, inflation_correct)
+      to_add = addition + addition_increase_perc*addition_increase_perc*x
+      self.simulate(to_add, rebalance)
+
+  # Calculate portfolio history in terms of today's dollars.
+  #def adjust_for_inflation(self):
+  #  # Calculate inflation rate:
+  #  inflation = inflation_rate/100 + numpy.random.normal(0, inflation_std_dev/100)
+  #  self.inflation.append(inflation)
+
+  #  # Correct for inflation:
+  #  # Using the present value function to calculate what our money is actually worth with
+  #  # inflation: http://financeformulas.net/present_value.html
+  #  value = self.portfolio.value()
+  #  corrected_value = value/(1 + inflation)
+  #  difference = corrected_value - value
+  #  self.portfolio.trade(difference)
 
   def __repr__(self):
     strn = self.name + " Scenario:\n"
     strn += "Portfolio: " + self.portfolio.name + " Portfolio\n"
-    strn += "Duration: " + str(len(self.history)) + " years\n"
+    strn += "Duration: " + str(len(self.history)-1) + " years\n"
     strn += "\n"
     strn += self.portfolio.name + " Portfolio Start:\n"
     strn += str(self.history[0])
