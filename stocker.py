@@ -2,6 +2,7 @@ import numpy.random
 import copy
 import statistics
 import astropy.stats
+import numpy as np
 
 def format_currency(value):
   return "${:,.2f}".format(value)
@@ -27,7 +28,7 @@ class Position(object):
     # Calculate return as ave return + normal distribution of std deviation:
     this_return = 0.0
     if self.value > 0.0:
-      this_return = self.ave_return*self.value + numpy.random.normal(0, self.value*self.std_dev)
+      this_return = self.ave_return*self.value + np.random.normal(0, self.value*self.std_dev)
     self.value = self.value + this_return
     if self.value < 0.0:
       self.value = 0.0
@@ -212,9 +213,9 @@ class Monte_Carlo(object):
     strn += "  MAD:       " + format_currency(astropy.stats.median_absolute_deviation(self.values)) + "\n"
     strn += "\n"
     strn += "  Minimum:   " + format_currency(min(self.values)) + "\n"
-    strn += "  10th Perc: " + format_currency(numpy.percentile(self.values, 10)) + "\n"
+    strn += "  10th Perc: " + format_currency(np.percentile(self.values, 10, interpolation='nearest')) + "\n"
     strn += "  Median:    " + format_currency(statistics.median_low(self.values)) + "\n"
-    strn += "  90th Perc: " + format_currency(numpy.percentile(self.values, 90)) + "\n"
+    strn += "  90th Perc: " + format_currency(np.percentile(self.values, 90, interpolation='nearest')) + "\n"
     strn += "  Maximum:   " + format_currency(max(self.values)) + "\n"
     return strn
 
@@ -224,23 +225,53 @@ class Monte_Carlo(object):
   def histogram(self):
     import matplotlib.pyplot as plt
     values = [v/1000000.0 for v in self.values]
-    weights = numpy.ones_like(values)/float(len(values))*100.0
+    weights = np.ones_like(values)/float(len(values))*100.0
+    plt.figure()
     n, bins, patches = plt.hist(values, 30, weights=weights, facecolor='0.5', alpha=0.75)
     plt.axvline(x=statistics.median_low(values), color='g')
-    plt.axvline(x=numpy.percentile(values, 10), color='r')
+    plt.axvline(x=np.percentile(values, 10, interpolation='nearest'), color='r')
     plt.axvline(x=statistics.median_low(values) - 2*astropy.stats.median_absolute_deviation(values), color='m')
     plt.legend([ \
       'Median (' + format_currency(statistics.median_low(self.values)) + ')', \
-      '10th Perc (' + format_currency(numpy.percentile(self.values, 10)) + ')', \
+      '10th Perc (' + format_currency(np.percentile(self.values, 10, interpolation='nearest')) + ')', \
       r'-2*MAD (' + format_currency(statistics.median_low(self.values) - 2*astropy.stats.median_absolute_deviation(self.values)) + ')', \
     ])
     plt.xlabel('Portfolio Value ($M)')
     plt.ylabel('Probability %')
     plt.title('Final Portfolio Value Probability Distribution (n=' + str(len(self.runs)) + ")")
-    #plt.text(60, .025, r'$\mu=100,\ \sigma=15$')
-    #plt.axis([40, 160, 0, 0.03])
     plt.grid(True)
     plt.show()
+
+  def plot(self, smooth=True):
+    import matplotlib.pyplot as plt
+    from scipy.signal import savgol_filter
+
+    # Find the median and 10th percentile data sets:
+    med_scenario = self.runs[statistics.median_low((val, idx) for (idx, val) in enumerate(self.values))[1]]
+    tenth_scenario = self.runs[self.values.index(np.percentile(self.values, 10, interpolation='nearest'))]
+    med_data = [p.value()/1000000 for p in med_scenario.history]
+    tenth_data = [p.value()/1000000 for p in tenth_scenario.history]
+    # Plot data:
+    plt.figure()
+    if smooth:
+      med_data = savgol_filter(med_data, 11, 3)
+      tenth_data = savgol_filter(tenth_data, 11, 3)
+    plt.plot(med_data, lw=1, color='lightblue')
+    plt.fill_between(list(range(len(med_data))), med_data, interpolate=False, facecolor='lightblue', alpha=0.5)
+    plt.plot(tenth_data, lw=1, color='steelblue')
+    plt.fill_between(list(range(len(tenth_data))), tenth_data, interpolate=False, facecolor='steelblue', alpha=0.5)
+    plt.ylim(bottom=0.0) 
+    plt.xlim(0, len(med_data) - 1)
+    plt.xlabel('Year')
+    plt.ylabel('Portfolio Value ($M)')
+    plt.title('Portfolio Value Over Time')
+    plt.legend([ \
+      'Median (' + format_currency(statistics.median_low(self.values)) + ')', \
+      '10th Perc (' + format_currency(np.percentile(self.values, 10)) + ')', \
+    ])
+    plt.grid(True)
+    plt.show()
+
 
 if __name__== "__main__":
   us_stocks = Position("Domestic Equities", ave_return=10.2, std_dev=19.8)
@@ -260,4 +291,5 @@ if __name__== "__main__":
   mc.run(250)
   print(str(mc))
   mc.histogram()
+  mc.plot()
 
