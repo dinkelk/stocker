@@ -233,9 +233,10 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     # Find the median and 10th percentile data sets:
     data = [p.value()/1000000 for p in self.history]
     # Plot data:
-    plt.figure()
+    f = plt.figure()
     if smooth:
-      data = savgol_filter(data, 11, 3)
+      amount = min(9, int(len(data)/5))
+      data = savgol_filter(data, amount, 3)
     plt.plot(data, lw=1, color='steelblue')
     plt.fill_between(list(range(len(data))), data, interpolate=False, facecolor='steelblue', alpha=0.5)
     plt.ylim(bottom=0.0) 
@@ -247,7 +248,6 @@ class Scenario_Base(metaclass=abc.ABCMeta):
       'Value (' + format_currency(self.history[-1].value()) + ')', \
     ])
     plt.grid(True)
-    plt.show()
 
   def __repr__(self):
     strn = self.name + " Scenario:\n"
@@ -296,7 +296,6 @@ class Scenario(Scenario_Base):
   def simulate(self, addition=0.0):
     # Buy more of the portfolio, after simulation, worst case:
     self.portfolio.trade(addition)
-    print(str(addition))
 
     # Run the base class simulation:
     super(Scenario, self).simulate()
@@ -340,33 +339,19 @@ class Piecewise_Scenario(Scenario_Base):
     for scenario in self.scenarios:
       # First zero the scenario portfolio value:
       scenario.portfolio.trade(-1*scenario.portfolio.value())
-      print(scenario.portfolio.value())
 
       # Set scenario portfolio value with the value of the
       # previous scenario:
       scenario.portfolio.trade(value)
-      print(scenario.portfolio.value())
 
       # Run scenario:
-      print("before: " + str(scenario.portfolio))
       scenario.run()
 
       # Save the final portfolio value:
       value = scenario.portfolio.value()
-      #print("after: " + str(value))
-      print("after: " + str(scenario.history[1]))
-      print("after: " + str(scenario.history[-1]))
-      print("after: " + str(scenario.portfolio))
 
       # Save data:
       self.save_portfolios_to_history(scenario.uncorrected_history[1:])
-      print(len(scenario.history))
-
-      # Aggregate data:
-      #self.history.extend(scenario.history[1:])
-      #self.uncorrected_history.extend(scenario.uncorrected_history[1:])
-      #self.returns.extend(scenario.returns[1:])
-      #self.uncorrected_returns.extend(scenario.uncorrected_returns[1:])
 
 class Age_Based_Scenario(object):
   def __init__(self, name):
@@ -388,7 +373,7 @@ class Monte_Carlo(object):
   def run(self, n):
     for x in range(n):
       new_scenario = copy.deepcopy(self.scenario)
-      new_scenario.simulate()
+      new_scenario.run()
       self.values.append(new_scenario.history[-1].value())
       self.runs.append(new_scenario)
 
@@ -416,21 +401,26 @@ class Monte_Carlo(object):
     import matplotlib.pyplot as plt
     values = [v/1000000.0 for v in self.values]
     weights = np.ones_like(values)/float(len(values))*100.0
-    plt.figure()
+    f = plt.figure()
     n, bins, patches = plt.hist(values, 30, weights=weights, facecolor='0.5', alpha=0.75)
     plt.axvline(x=statistics.median_low(values), color='g')
     plt.axvline(x=np.percentile(values, 10, interpolation='nearest'), color='r')
-    plt.axvline(x=statistics.median_low(values) - 2*astropy.stats.median_absolute_deviation(values), color='m')
+    two_MAD = statistics.median_low(values) - 2*astropy.stats.median_absolute_deviation(values)
+    if two_MAD < 0.0:
+      two_MAD = 0.0
+    plt.axvline(x=two_MAD, color='m')
+    two_MAD = statistics.median_low(self.values) - 2*astropy.stats.median_absolute_deviation(self.values)
+    if two_MAD < 0.0:
+      two_MAD = 0.0
     plt.legend([ \
       'Median (' + format_currency(statistics.median_low(self.values)) + ')', \
       '10th Perc (' + format_currency(np.percentile(self.values, 10, interpolation='nearest')) + ')', \
-      r'-2*MAD (' + format_currency(statistics.median_low(self.values) - 2*astropy.stats.median_absolute_deviation(self.values)) + ')', \
+      r'-2*MAD (' + format_currency(two_MAD) + ')', \
     ])
     plt.xlabel('Portfolio Value ($M)')
     plt.ylabel('Probability %')
     plt.title('Final Portfolio Value Probability Distribution (n=' + str(len(self.runs)) + ")")
     plt.grid(True)
-    plt.show()
 
   def plot(self, smooth=True):
     import matplotlib.pyplot as plt
@@ -442,10 +432,11 @@ class Monte_Carlo(object):
     med_data = [p.value()/1000000 for p in med_scenario.history]
     tenth_data = [p.value()/1000000 for p in tenth_scenario.history]
     # Plot data:
-    plt.figure()
+    f = plt.figure()
     if smooth:
-      med_data = savgol_filter(med_data, 11, 3)
-      tenth_data = savgol_filter(tenth_data, 11, 3)
+      amount = min(9, int(len(med_data)/5))
+      med_data = savgol_filter(med_data, amount, 3)
+      tenth_data = savgol_filter(tenth_data, amount, 3)
     plt.plot(med_data, lw=1, color='lightblue')
     plt.fill_between(list(range(len(med_data))), med_data, interpolate=False, facecolor='lightblue', alpha=0.5)
     plt.plot(tenth_data, lw=1, color='steelblue')
@@ -460,7 +451,10 @@ class Monte_Carlo(object):
       '10th Perc (' + format_currency(np.percentile(self.values, 10)) + ')', \
     ])
     plt.grid(True)
-    plt.show()
+
+def show_plots():
+  import matplotlib.pyplot as plt
+  plt.show()
 
 if __name__== "__main__":
   #sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, International_Stocks, US_Bonds, International_Bonds, Alternatives, Cash], weights=[30, 15, 20, 10, 5, 1])
@@ -471,11 +465,11 @@ if __name__== "__main__":
   retirement = Piecewise_Scenario("Retirement", [accumulation, distribution])
   retirement.run()
   print(str(retirement))
-  retirement.plot(smooth=False)
+  retirement.plot(smooth=True)
 
-  #mc = Monte_Carlo(retirement)
-  #mc.run(250)
-  #print(str(mc))
-  #mc.histogram()
-  #mc.plot(smooth=False)
-
+  mc = Monte_Carlo(retirement)
+  mc.run(250)
+  print(str(mc))
+  mc.histogram()
+  mc.plot(smooth=True)
+  show_plots()
