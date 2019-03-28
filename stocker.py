@@ -78,14 +78,18 @@ Cash = Position("Cash", ave_return=3.4, std_dev=3.1)
 class Portfolio(object):
   def __init__(self, name, positions, weights, value=0.0):
     self.name = name
-    self.total_weight = float(sum(weights))
-    self.weights = [float(w)/self.total_weight for w in weights]
     self.positions = positions
+    self.set_weights(weights)
 
-    assert len(weights)==len(positions), "The number of weights must equal the number of positions"
     assert value >= 0.0, "Initial value must be positive or zero."
 
     self.trade(value)
+
+  def set_weights(self, weights):
+    assert len(weights) == len(self.positions), "The number of weights must equal the number of positions"
+    assert all([w >= 0.0 for w in weights]), "All weights must be positive: " + str(weights)
+    self.total_weight = float(sum(weights))
+    self.weights = [float(w)/self.total_weight for w in weights]
 
   # Simulate 1 time unit:
   def simulate(self):
@@ -99,16 +103,26 @@ class Portfolio(object):
     for w, p in zip(self.weights, self.positions):
       p.trade(amount*w)
 
-  def rebalance(self):
+  def rebalance(self, new_weights=None):
     value = self.value()
 
+    # If new weights were provided, apply those prior to
+    # rebalancing:
+    if new_weights:
+      self.set_weights(new_weights)
+
+    # Rebalance:
     if value > 0.0:
       for w, p in zip(self.weights, self.positions):
-        current_weight = p.value/value
-        if current_weight > 0.0:
-          new_value = p.value*w/current_weight
-          correction = new_value-p.value
-          p.trade(correction)
+        #current_weight = p.value/value
+        #if current_weight > 0.0:
+          # new_value = p.value*w/current_weight
+          # correction = new_value-p.value
+
+          #  (currentval + correction)/total = desired_weight = new_val / total
+          #  correction = current_weight * total - currentval
+        correction = w * value - p.value
+        p.trade(correction)
 
     new_value = self.value()
 
@@ -286,32 +300,42 @@ class Scenario_Base(metaclass=abc.ABCMeta):
 # number of years. Parameters are provided to account for inflation,
 # rebalnce the portfolio yearly, add/subtract a static value yearly,
 # and to adjust the addition/subtraction by some percentage over time.
+# An "end_weights" field also exists to provide a linear transition 
+# from the portfolio's weightings to the weighting of the "end_weights"
+# field over the duration of the scenario. This field can be used to
+# simulate an age-based portfolio, transferring assets from stocks to
+# bonds as the investment ages.
 # This simple strategy should work for many real life savings projections.
 class Scenario(Scenario_Base):
-  def __init__(self, name, portfolio, num_years, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0):
+  def __init__(self, name, portfolio, num_years, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0, end_weights=None):
     self.addition = addition_per_year
     self.addition_increase = addition_increase_perc/100.0
+    self.end_weights = end_weights
+    self.slopes = None
+    self.start_weights = None
+    if self.end_weights:
+      assert len(end_weights) == len(portfolio.weights), "Length of end weight vector and length of start weights in portfolio must be equal."
+      self.slopes = [float(w_end - w_start) / float(num_years - 1) for w_end, w_start in zip(self.end_weights, portfolio.weights)]
+      self.start_weights = copy.deepcopy(portfolio.weights)
+
+    # Call the base class init:
     super(Scenario, self).__init__(name, num_years, portfolio, inflation_rate_perc, rebalance)
-
-  def simulate(self, addition=0.0):
-    # Buy more of the portfolio, after simulation, worst case:
-    self.portfolio.trade(addition)
-
-    # Run the base class simulation:
-    super(Scenario, self).simulate()
 
   def run(self):
     to_add = self.addition
     for x in range(self.num_years):
-      self.simulate(to_add)
-      to_add += abs(to_add)*self.addition_increase
+      # Calculate new weights and rebalance portfolio:
+      if self.slopes:
+        new_weights = [s*x + w for w, s in zip(self.start_weights, self.slopes)] 
+        self.portfolio.rebalance(new_weights)
 
-  # TODO something with this:
-  #def __repr__(self):
-  #  strn = self.name + " Scenario:\n"
-  #  strn += "Inflation Rate: " + format_percentage(self.inflation_rate) + "\n" 
-  #  strn += "Annual Rebalancing: " + ("Yes" if self.rebalance else "No") + "\n" 
-  #  return strn
+      # Calculate amount to add to portfolio:
+      to_add += abs(to_add)*self.addition_increase
+      if to_add > 0.0:
+        self.portfolio.trade(to_add)
+
+      # Run the base class simulation:
+      super(Scenario, self).simulate()
 
 # Piecewise scenario:
 # This scenario allows the combinations of other scenarios in a piecewise
@@ -353,9 +377,43 @@ class Piecewise_Scenario(Scenario_Base):
       # Save data:
       self.save_portfolios_to_history(scenario.uncorrected_history[1:])
 
-class Age_Based_Scenario(object):
-  def __init__(self, name):
-    pass
+# Age based scenario:
+# This scenario is similiar to the regular Scenario class except that it allows you
+# to vary the weights of the allocations in your portfolio over time, either by changing
+# the allocations at a very specific time or by performing a linear transition between
+# two different weightings during a specified time.
+#
+# All the allocations to vary within the age based scenario should be provided in the portfolio
+# at instantiation, even if the weighting of a certain allocation may be zero at any given time.
+# If you want to drastically change allocations over time, you are better off using a
+# Piecewise_Scenario.
+#
+# To provide an age based reallocation of assets the following must be specified and provided at
+# instantiation (in addition to the parameters provided for the regular Scenario):
+#
+
+#class Adjustment(object):
+#  def __init__(self, portfolio, start_year, end_year, start_weights, end_weights):
+#    assert end_year >= start_year, "End year must be greater or equal to start year in an adjustment."
+#    assert adjustment_type in ["gradual", "immediate"], "Adjustment type must be either 'gradual' (linear) or 'immediate' (step)"
+#    assert len(start_weights) == len(portfolio.weights), "Length of start weight vector of adjustment and of portfolio must be equal."
+#    assert len(end_weights) == len(portfolio.weights), "Length of end weight vector of adjustment and of portfolio must be equal."
+#    self.portfolio = portfolio
+#    self.start_year = start_year
+#    self.end_year = end_year
+#    self.weights = weights
+#    self.adjustment_type = adjustment_type
+#    
+#  def adjust(year, portfolio):
+#
+#    if year < start_year 
+#    return portfolio
+#
+#class Age_Based_Scenario(Scenario):
+#  def __init__(self, name, portfolio, num_years, start_weights, end_weights, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0):
+#
+#
+#    super(Age_Based_Scenario, self).__init__(name, portfolio, num_years, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0)
 
 #
 # The Monte Carlo class
@@ -369,16 +427,24 @@ class Monte_Carlo(object):
     self.scenario.reset()
     self.runs = []
     self.values = []
+    self.raw_values = []
     
   def run(self, n):
     for x in range(n):
       new_scenario = copy.deepcopy(self.scenario)
       new_scenario.run()
-      self.values.append(new_scenario.history[-1].value())
+      self.raw_values.append(new_scenario.history[-1].value())
       self.runs.append(new_scenario)
+
+    # Remove high outliers:
+    med = statistics.median_low(self.raw_values)
+    MAD = astropy.stats.median_absolute_deviation(self.raw_values)
+    self.values = [v for v in self.raw_values if v < med + 4*MAD]
 
   def __repr__(self):
     strn = "Monte Carlo Results for " + str(len(self.runs)) + " Scenarios:\n"
+    strn += "\n"
+    strn += "Outliers removed: " + str(len(self.raw_values) - len(self.values))
     strn += "\n"
     strn += "Inflation Corrected Portfolio Final Values:\n"
     strn += "  Average:   " + format_currency(statistics.mean(self.values)) + "\n"
@@ -427,8 +493,10 @@ class Monte_Carlo(object):
     from scipy.signal import savgol_filter
 
     # Find the median and 10th percentile data sets:
-    med_scenario = self.runs[statistics.median_low((val, idx) for (idx, val) in enumerate(self.values))[1]]
-    tenth_scenario = self.runs[self.values.index(np.percentile(self.values, 10, interpolation='nearest'))]
+    med = statistics.median_low(self.values)
+    ten = np.percentile(self.values, 10, interpolation='nearest')
+    med_scenario = self.runs[self.raw_values.index(med)]
+    tenth_scenario = self.runs[self.raw_values.index(ten)]
     med_data = [p.value()/1000000 for p in med_scenario.history]
     tenth_data = [p.value()/1000000 for p in tenth_scenario.history]
     # Plot data:
@@ -458,18 +526,23 @@ def show_plots():
 
 if __name__== "__main__":
   #sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, International_Stocks, US_Bonds, International_Bonds, Alternatives, Cash], weights=[30, 15, 20, 10, 5, 1])
-  sample_portfolio = Portfolio(name="Stocks", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[50, 40, 5, 5])
-  sample_portfolio2 = Portfolio(name="Bonds", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[0, 40, 5, 5])
-  accumulation = Scenario("Accumulation", sample_portfolio, num_years=35, addition_per_year=15000.0, addition_increase_perc=2.0)
-  distribution = Scenario("Distribution", sample_portfolio2, num_years=30, addition_per_year=-200000.0, addition_increase_perc=-3.5)
-  retirement = Piecewise_Scenario("Retirement", [accumulation, distribution])
+  start_weights=[1, 0]
+  end_weights=[0, 1]
+  sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, US_Bonds], weights=start_weights)
+  #sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, International_Stocks], weights=[70, 0])
+  #sample_portfolio = Portfolio(name="Stocks", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[50, 40, 5, 5])
+  #sample_portfolio2 = Portfolio(name="Bonds", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[0, 40, 5, 5])
+  accumulation = Scenario("Accumulation", sample_portfolio, num_years=35, addition_per_year=15000.0, addition_increase_perc=2.0, end_weights=end_weights)
+  retirement = accumulation
+  #distribution = Scenario("Distribution", sample_portfolio, num_years=30, addition_per_year=80000.0, addition_increase_perc=-3.5)
+  #retirement = Piecewise_Scenario("Retirement", [accumulation, distribution])
   retirement.run()
   print(str(retirement))
-  retirement.plot(smooth=True)
+  retirement.plot(smooth=False)
 
   mc = Monte_Carlo(retirement)
   mc.run(250)
   print(str(mc))
   mc.histogram()
-  mc.plot(smooth=True)
+  mc.plot(smooth=False)
   show_plots()
