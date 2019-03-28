@@ -1,4 +1,3 @@
-import numpy.random
 import copy
 import statistics
 import astropy.stats
@@ -8,10 +7,10 @@ import abc
 #
 # Value formatting functions:
 #
-def format_currency(value):
+def _format_currency(value):
   return "${:,.2f}".format(value)
 
-def format_percentage(decimal):
+def _format_percentage(decimal):
   return ("%0.1f%%" % (decimal*100.0))
 
 #
@@ -45,7 +44,10 @@ class Position(object):
       self.value = 0.0
 
   def __repr__(self):
-    return format_currency(self.value)
+    return _format_currency(self.value)
+
+  def __str__(self):
+    return self.__repr__()
 
 #
 # Define the historical asset class return and risk:
@@ -131,11 +133,11 @@ class Portfolio(object):
     strn += "-----------------------------------------------------------\n"
     for w, p in zip(self.weights, self.positions):
       if value > 0.0:
-        strn += template.format(p.name, format_percentage(p.value/value), str(p)) + "\n"
+        strn += template.format(p.name, _format_percentage(p.value/value), str(p)) + "\n"
       else:
-        strn += template.format(p.name, format_percentage(0.0), str(p)) + "\n"
+        strn += template.format(p.name, _format_percentage(0.0), str(p)) + "\n"
     strn += "-----------------------------------------------------------\n"
-    strn += template.format("Total", "100.0% ", format_currency(value)) + "\n"
+    strn += template.format("Total", "100.0% ", _format_currency(value)) + "\n"
     strn += "-----------------------------------------------------------\n"
     return strn
 
@@ -166,7 +168,7 @@ Sixty_Forty = Portfolio(name="All Bonds", positions=[US_Stocks, International_St
 
 # Scenario base class:
 # This provides common functionality for all scenarios:
-class Scenario_Base(metaclass=abc.ABCMeta):
+class _Scenario_Base(metaclass=abc.ABCMeta):
   def __init__(self, name, num_years, portfolio, inflation_rate_perc=3.5, rebalance=True):
     self.name = name
     self.portfolio = copy.deepcopy(portfolio)
@@ -247,7 +249,7 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     if smooth:
       amount = min(9, int(len(data)/5))
       data = savgol_filter(data, amount, 3)
-    plt.plot(data, lw=1, color=color, label=label + ' (' + format_currency(self.history[-1].value()) + ')')
+    plt.plot(data, lw=1, color=color, label=label + ' (' + _format_currency(self.history[-1].value()) + ')')
     plt.fill_between(list(range(len(data))), data, interpolate=False, facecolor=color, alpha=0.5)
     plt.ylim(bottom=0.0) 
     plt.xlim(0, len(data) - 1)
@@ -261,7 +263,7 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     strn = "'" + self.name + "' Scenario:\n"
     strn += "Portfolio: " + self.portfolio.name + " Portfolio\n"
     strn += "Duration: " + str(len(self.history)-1) + " years\n"
-    strn += "Inflation Rate: " + format_percentage(self.inflation_rate) + "\n" 
+    strn += "Inflation Rate: " + _format_percentage(self.inflation_rate) + "\n" 
     strn += "Annual Rebalancing: " + ("Yes" if self.rebalance else "No") + "\n" 
     strn += "\n"
     strn += self.portfolio.name + " Portfolio Start:\n"
@@ -270,20 +272,20 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     # strn += self.portfolio.name + " Portfolio End:\n"
     # strn += str(self.uncorrected_history[-1])
     # strn += "\n"
-    strn += self.portfolio.name + " Portfolio End (Inflation Corrected at " + format_percentage(self.inflation_rate) + "):\n" 
+    strn += self.portfolio.name + " Portfolio End (Inflation Corrected at " + _format_percentage(self.inflation_rate) + "):\n" 
     strn += str(self.history[-1])
     strn += "\n"
     strn += "Raw Metrics:\n"
-    strn += "Total Return: " + format_percentage((self.uncorrected_history[-1].value() - self.uncorrected_history[0].value())/self.uncorrected_history[0].value()) + "\n"
-    strn += "Ave Return: " + format_percentage(sum(self.uncorrected_returns)/len(self.uncorrected_returns)) + "\n"
-    strn += "Best Return: " + format_percentage(max(self.uncorrected_returns)) + " (year " + str(self.returns.index(max(self.returns))) + ")\n"
-    strn += "Worst Return: " + format_percentage(min(self.uncorrected_returns)) + " (year " + str(self.returns.index(min(self.returns))) + ")\n"
+    strn += "Total Return: " + _format_percentage((self.uncorrected_history[-1].value() - self.uncorrected_history[0].value())/self.uncorrected_history[0].value()) + "\n"
+    strn += "Ave Return: " + _format_percentage(sum(self.uncorrected_returns)/len(self.uncorrected_returns)) + "\n"
+    strn += "Best Return: " + _format_percentage(max(self.uncorrected_returns)) + " (year " + str(self.returns.index(max(self.returns))) + ")\n"
+    strn += "Worst Return: " + _format_percentage(min(self.uncorrected_returns)) + " (year " + str(self.returns.index(min(self.returns))) + ")\n"
     strn += "\n"
-    strn += "Inflation Corrected Metrics at " + format_percentage(self.inflation_rate) + ":\n" 
-    strn += "Total Return: " + format_percentage((self.history[-1].value() - self.history[0].value())/self.history[0].value()) + "\n"
-    strn += "Ave Return: " + format_percentage(sum(self.returns)/len(self.returns)) + "\n"
-    strn += "Best Return: " + format_percentage(max(self.returns)) + " (year " + str(self.returns.index(max(self.returns))) + ")\n"
-    strn += "Worst Return: " + format_percentage(min(self.returns)) + " (year " + str(self.returns.index(min(self.returns))) + ")\n"
+    strn += "Inflation Corrected Metrics at " + _format_percentage(self.inflation_rate) + ":\n" 
+    strn += "Total Return: " + _format_percentage((self.history[-1].value() - self.history[0].value())/self.history[0].value()) + "\n"
+    strn += "Ave Return: " + _format_percentage(sum(self.returns)/len(self.returns)) + "\n"
+    strn += "Best Return: " + _format_percentage(max(self.returns)) + " (year " + str(self.returns.index(max(self.returns))) + ")\n"
+    strn += "Worst Return: " + _format_percentage(min(self.returns)) + " (year " + str(self.returns.index(min(self.returns))) + ")\n"
     return strn
 
 # Standard scenario:
@@ -297,7 +299,7 @@ class Scenario_Base(metaclass=abc.ABCMeta):
 # simulate an age-based portfolio, transferring assets from stocks to
 # bonds as the investment ages.
 # This simple strategy should work for many real life savings projections.
-class Scenario(Scenario_Base):
+class Scenario(_Scenario_Base):
   def __init__(self, name, portfolio, num_years, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0, end_weights=None):
     self.addition = addition_per_year
     self.addition_increase = addition_increase_perc/100.0
@@ -334,7 +336,7 @@ class Scenario(Scenario_Base):
 # Note: The monitary values of all portfolios except in the first scenario are ignored.
 # After the first scenario is run, the value from that portfolio is transfered
 # to the second portfolio, and so on.
-class Piecewise_Scenario(Scenario_Base):
+class Piecewise_Scenario(_Scenario_Base):
   def __init__(self, name, scenarios):
     self.scenarios = scenarios
     first_scenario = self.scenarios[0]
@@ -397,29 +399,29 @@ class Monte_Carlo(object):
     strn += "High-end Outliers Removed: " + str(len(self.raw_values) - len(self.values)) + "\n"
     strn += "\n"
     strn += "Inflation Corrected Portfolio Final Values:\n"
-    strn += "  Average:   " + format_currency(statistics.mean(self.values)) + "\n"
-    strn += "  Std Dev:   " + format_currency(statistics.stdev(self.values)) + "\n"
+    strn += "  Average:   " + _format_currency(statistics.mean(self.values)) + "\n"
+    strn += "  Std Dev:   " + _format_currency(statistics.stdev(self.values)) + "\n"
     strn += "\n"
-    strn += "  Median:    " + format_currency(statistics.median_low(self.values)) + "\n"
-    strn += "  MAD:       " + format_currency(astropy.stats.median_absolute_deviation(self.values)) + "\n"
+    strn += "  Median:    " + _format_currency(statistics.median_low(self.values)) + "\n"
+    strn += "  MAD:       " + _format_currency(astropy.stats.median_absolute_deviation(self.values)) + "\n"
     strn += "\n"
-    strn += "  Minimum:   " + format_currency(min(self.values)) + "\n"
-    strn += "  10th Perc: " + format_currency(np.percentile(self.values, 10, interpolation='nearest')) + "\n"
-    strn += "  Median:    " + format_currency(statistics.median_low(self.values)) + "\n"
-    strn += "  90th Perc: " + format_currency(np.percentile(self.values, 90, interpolation='nearest')) + "\n"
-    strn += "  Maximum:   " + format_currency(max(self.values)) + "\n"
+    strn += "  Minimum:   " + _format_currency(min(self.values)) + "\n"
+    strn += "  10th Perc: " + _format_currency(np.percentile(self.values, 10, interpolation='nearest')) + "\n"
+    strn += "  Median:    " + _format_currency(statistics.median_low(self.values)) + "\n"
+    strn += "  90th Perc: " + _format_currency(np.percentile(self.values, 90, interpolation='nearest')) + "\n"
+    strn += "  Maximum:   " + _format_currency(max(self.values)) + "\n"
     strn += "\n"
     if goal:
       good_runs = len([v for v in self.raw_values if v > goal])
-      strn += "Savings Goal: " + format_currency(goal) + "\n"
-      strn += "Likelihood of Meeting Goal: " + format_percentage(good_runs/len(self.raw_values)) + "\n"
+      strn += "Savings Goal: " + _format_currency(goal) + "\n"
+      strn += "Likelihood of Meeting Goal: " + _format_percentage(good_runs/len(self.raw_values)) + "\n"
     return strn
 
   def histogram(self):
     import matplotlib.pyplot as plt
     values = [v/1000000.0 for v in self.values]
     weights = np.ones_like(values)/float(len(values))*100.0
-    f = plt.figure()
+    plt.figure()
     n, bins, patches = plt.hist(values, 30, weights=weights, facecolor='0.5', alpha=0.75)
     plt.axvline(x=statistics.median_low(values), color='g')
     plt.axvline(x=np.percentile(values, 10, interpolation='nearest'), color='r')
@@ -431,9 +433,9 @@ class Monte_Carlo(object):
     if two_MAD < 0.0:
       two_MAD = 0.0
     plt.legend([ \
-      'Median (' + format_currency(statistics.median_low(self.values)) + ')', \
-      '10th Perc (' + format_currency(np.percentile(self.values, 10, interpolation='nearest')) + ')', \
-      r'-2*MAD (' + format_currency(two_MAD) + ')', \
+      'Median (' + _format_currency(statistics.median_low(self.values)) + ')', \
+      '10th Perc (' + _format_currency(np.percentile(self.values, 10, interpolation='nearest')) + ')', \
+      r'-2*MAD (' + _format_currency(two_MAD) + ')', \
     ])
     plt.xlabel('Portfolio Value ($M)')
     plt.ylabel('Probability %')
@@ -442,7 +444,6 @@ class Monte_Carlo(object):
 
   def plot(self, smooth=True):
     import matplotlib.pyplot as plt
-    from scipy.signal import savgol_filter
 
     # Find the median and 10th percentile data sets:
     med = statistics.median_low(self.values)
@@ -458,26 +459,3 @@ class Monte_Carlo(object):
 def show_plots():
   import matplotlib.pyplot as plt
   plt.show()
-
-if __name__== "__main__":
-  #sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, International_Stocks, US_Bonds, International_Bonds, Alternatives, Cash], weights=[30, 15, 20, 10, 5, 1])
-  start_weights=[1, 0]
-  end_weights=[0, 1]
-  sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, US_Bonds], weights=start_weights)
-  #sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, International_Stocks], weights=[70, 0])
-  #sample_portfolio = Portfolio(name="Stocks", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[50, 40, 5, 5])
-  #sample_portfolio2 = Portfolio(name="Bonds", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[0, 40, 5, 5])
-  accumulation = Scenario("Accumulation", sample_portfolio, num_years=35, addition_per_year=15000.0, addition_increase_perc=2.0, end_weights=end_weights)
-  retirement = accumulation
-  #distribution = Scenario("Distribution", sample_portfolio, num_years=30, addition_per_year=80000.0, addition_increase_perc=-3.5)
-  #retirement = Piecewise_Scenario("Retirement", [accumulation, distribution])
-  retirement.run()
-  print(retirement.results())
-  retirement.plot(smooth=False)
-
-  mc = Monte_Carlo(retirement)
-  mc.run(250)
-  print(mc.results(goal = 1000000))
-  mc.histogram()
-  mc.plot(smooth=True)
-  show_plots()
