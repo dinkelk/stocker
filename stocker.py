@@ -248,7 +248,10 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
       plt.figure()
     if smooth:
       amount = min(9, int(len(data)/5))
-      data = savgol_filter(data, amount, 3)
+      order = 3
+      if order >= amount:
+        order = amount - 1
+      data = savgol_filter(data, amount, order)
     plt.plot(data, lw=1, color=color, label=label + ' (' + _format_currency(self.history[-1].value()) + ')')
     plt.fill_between(list(range(len(data))), data, interpolate=False, facecolor=color, alpha=0.5)
     plt.ylim(bottom=0.0) 
@@ -300,9 +303,9 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
 # bonds as the investment ages.
 # This simple strategy should work for many real life savings projections.
 class Scenario(_Scenario_Base):
-  def __init__(self, name, portfolio, num_years, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0, end_weights=None):
-    self.addition = addition_per_year
-    self.addition_increase = addition_increase_perc/100.0
+  def __init__(self, name, portfolio, num_years, inflation_rate_perc=3.5, rebalance=True, annual_contribution=0.0, annual_contribution_increase_perc=0.0, end_weights=None):
+    self.addition = annual_contribution
+    self.addition_increase = annual_contribution_increase_perc/100.0
     self.end_weights = end_weights
     self.slopes = None
     self.start_weights = None
