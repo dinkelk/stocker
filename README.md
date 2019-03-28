@@ -1,2 +1,16 @@
 # stocker
 Simple Monte Carlo savings simulator
+
+## Examples
+
+For more examples on what stocker can do see [this directory](example/README.md).
+
+## Installation
+
+Stocker's dependencies can be installed via `pip`:
+
+```
+pip install -r requirements.txt
+```
+
+Then, simply clone this repository, add it to you path, and `include` it in your code.
