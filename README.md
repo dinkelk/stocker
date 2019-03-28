@@ -3,7 +3,7 @@ An easy to use Monte Carlo savings and retirement planner.
 
 ## Examples
 
-For more examples on what stocker can do see [this directory](example/README.md).
+For more examples on what stocker can do see [this directory](examples/README.md).
 
 ## Installation
 
