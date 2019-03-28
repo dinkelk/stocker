@@ -12,7 +12,7 @@ def format_currency(value):
   return "${:,.2f}".format(value)
 
 def format_percentage(decimal):
-  return ("%0.1f%% " % (decimal*100.0))
+  return ("%0.1f%%" % (decimal*100.0))
 
 #
 # Define a positition
@@ -257,8 +257,8 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     plt.legend()
     plt.grid(True)
 
-  def __repr__(self):
-    strn = self.name + " Scenario:\n"
+  def results(self):
+    strn = "'" + self.name + "' Scenario:\n"
     strn += "Portfolio: " + self.portfolio.name + " Portfolio\n"
     strn += "Duration: " + str(len(self.history)-1) + " years\n"
     strn += "Inflation Rate: " + format_percentage(self.inflation_rate) + "\n" 
@@ -267,9 +267,9 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     strn += self.portfolio.name + " Portfolio Start:\n"
     strn += str(self.history[0])
     strn += "\n"
-    strn += self.portfolio.name + " Portfolio End:\n"
-    strn += str(self.uncorrected_history[-1])
-    strn += "\n"
+    # strn += self.portfolio.name + " Portfolio End:\n"
+    # strn += str(self.uncorrected_history[-1])
+    # strn += "\n"
     strn += self.portfolio.name + " Portfolio End (Inflation Corrected at " + format_percentage(self.inflation_rate) + "):\n" 
     strn += str(self.history[-1])
     strn += "\n"
@@ -285,9 +285,6 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     strn += "Best Return: " + format_percentage(max(self.returns)) + " (year " + str(self.returns.index(max(self.returns))) + ")\n"
     strn += "Worst Return: " + format_percentage(min(self.returns)) + " (year " + str(self.returns.index(min(self.returns))) + ")\n"
     return strn
-
-  def __str__(self):
-    return self.__repr__()
 
 # Standard scenario:
 # This scenario allows a single portfolio to build for a configurable
@@ -366,6 +363,7 @@ class Piecewise_Scenario(Scenario_Base):
 
       # Save data:
       self.save_portfolios_to_history(scenario.uncorrected_history[1:])
+
 #
 # The Monte Carlo class
 #
@@ -392,10 +390,11 @@ class Monte_Carlo(object):
     MAD = astropy.stats.median_absolute_deviation(self.raw_values)
     self.values = [v for v in self.raw_values if v < med + 4*MAD]
 
-  def __repr__(self):
-    strn = "Monte Carlo Results for " + str(len(self.runs)) + " Scenarios:\n"
+  def results(self, goal=None):
+    strn = "Monte Carlo Results for the '" + self.scenario.name + "' Scenario:\n"
     strn += "\n"
-    strn += "Outliers removed: " + str(len(self.raw_values) - len(self.values))
+    strn += "Number of Runs: " + str(len(self.runs)) + "\n"
+    strn += "High-end Outliers Removed: " + str(len(self.raw_values) - len(self.values)) + "\n"
     strn += "\n"
     strn += "Inflation Corrected Portfolio Final Values:\n"
     strn += "  Average:   " + format_currency(statistics.mean(self.values)) + "\n"
@@ -409,10 +408,12 @@ class Monte_Carlo(object):
     strn += "  Median:    " + format_currency(statistics.median_low(self.values)) + "\n"
     strn += "  90th Perc: " + format_currency(np.percentile(self.values, 90, interpolation='nearest')) + "\n"
     strn += "  Maximum:   " + format_currency(max(self.values)) + "\n"
+    strn += "\n"
+    if goal:
+      good_runs = len([v for v in self.raw_values if v > goal])
+      strn += "Savings Goal: " + format_currency(goal) + "\n"
+      strn += "Likelihood of Meeting Goal: " + format_percentage(good_runs/len(self.raw_values)) + "\n"
     return strn
-
-  def __str__(self):
-    return self.__repr__()
 
   def histogram(self):
     import matplotlib.pyplot as plt
@@ -471,12 +472,12 @@ if __name__== "__main__":
   #distribution = Scenario("Distribution", sample_portfolio, num_years=30, addition_per_year=80000.0, addition_increase_perc=-3.5)
   #retirement = Piecewise_Scenario("Retirement", [accumulation, distribution])
   retirement.run()
-  print(str(retirement))
+  print(retirement.results())
   retirement.plot(smooth=False)
 
   mc = Monte_Carlo(retirement)
   mc.run(250)
-  print(str(mc))
+  print(mc.results(goal = 1000000))
   mc.histogram()
   mc.plot(smooth=True)
   show_plots()
