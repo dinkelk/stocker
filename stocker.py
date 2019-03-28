@@ -114,13 +114,6 @@ class Portfolio(object):
     # Rebalance:
     if value > 0.0:
       for w, p in zip(self.weights, self.positions):
-        #current_weight = p.value/value
-        #if current_weight > 0.0:
-          # new_value = p.value*w/current_weight
-          # correction = new_value-p.value
-
-          #  (currentval + correction)/total = desired_weight = new_val / total
-          #  correction = current_weight * total - currentval
         correction = w * value - p.value
         p.trade(correction)
 
@@ -240,27 +233,28 @@ class Scenario_Base(metaclass=abc.ABCMeta):
     # Save portfolio:
     self.save_portfolio_to_history(self.portfolio)
 
-  def plot(self, smooth=True):
+  def plot(self, figure=None, color='steelblue', label="Value", smooth=True):
     import matplotlib.pyplot as plt
     from scipy.signal import savgol_filter
 
     # Find the median and 10th percentile data sets:
-    data = [p.value()/1000000 for p in self.history]
+    data = [p.value()/1000000.0 for p in self.history]
     # Plot data:
-    f = plt.figure()
+    if figure:
+      plt.figure(figure.number)
+    else:
+      plt.figure()
     if smooth:
       amount = min(9, int(len(data)/5))
       data = savgol_filter(data, amount, 3)
-    plt.plot(data, lw=1, color='steelblue')
-    plt.fill_between(list(range(len(data))), data, interpolate=False, facecolor='steelblue', alpha=0.5)
+    plt.plot(data, lw=1, color=color, label=label + ' (' + format_currency(self.history[-1].value()) + ')')
+    plt.fill_between(list(range(len(data))), data, interpolate=False, facecolor=color, alpha=0.5)
     plt.ylim(bottom=0.0) 
     plt.xlim(0, len(data) - 1)
     plt.xlabel('Year')
     plt.ylabel('Portfolio Value ($M)')
     plt.title('Portfolio Value Over Time')
-    plt.legend([ \
-      'Value (' + format_currency(self.history[-1].value()) + ')', \
-    ])
+    plt.legend()
     plt.grid(True)
 
   def __repr__(self):
@@ -355,10 +349,6 @@ class Piecewise_Scenario(Scenario_Base):
     super(Piecewise_Scenario, self).reset()
 
   def run(self):
-    # self.history = [copy.deepcopy(self.scenarios[0].portfolio)]
-    # self.uncorrected_history = [copy.deepcopy(self.scenarios[0].portfolio)]
-    # self.returns = []
-    # self.uncorrected_returns = []
     value = self.scenarios[0].portfolio.value()
     for scenario in self.scenarios:
       # First zero the scenario portfolio value:
@@ -376,45 +366,6 @@ class Piecewise_Scenario(Scenario_Base):
 
       # Save data:
       self.save_portfolios_to_history(scenario.uncorrected_history[1:])
-
-# Age based scenario:
-# This scenario is similiar to the regular Scenario class except that it allows you
-# to vary the weights of the allocations in your portfolio over time, either by changing
-# the allocations at a very specific time or by performing a linear transition between
-# two different weightings during a specified time.
-#
-# All the allocations to vary within the age based scenario should be provided in the portfolio
-# at instantiation, even if the weighting of a certain allocation may be zero at any given time.
-# If you want to drastically change allocations over time, you are better off using a
-# Piecewise_Scenario.
-#
-# To provide an age based reallocation of assets the following must be specified and provided at
-# instantiation (in addition to the parameters provided for the regular Scenario):
-#
-
-#class Adjustment(object):
-#  def __init__(self, portfolio, start_year, end_year, start_weights, end_weights):
-#    assert end_year >= start_year, "End year must be greater or equal to start year in an adjustment."
-#    assert adjustment_type in ["gradual", "immediate"], "Adjustment type must be either 'gradual' (linear) or 'immediate' (step)"
-#    assert len(start_weights) == len(portfolio.weights), "Length of start weight vector of adjustment and of portfolio must be equal."
-#    assert len(end_weights) == len(portfolio.weights), "Length of end weight vector of adjustment and of portfolio must be equal."
-#    self.portfolio = portfolio
-#    self.start_year = start_year
-#    self.end_year = end_year
-#    self.weights = weights
-#    self.adjustment_type = adjustment_type
-#    
-#  def adjust(year, portfolio):
-#
-#    if year < start_year 
-#    return portfolio
-#
-#class Age_Based_Scenario(Scenario):
-#  def __init__(self, name, portfolio, num_years, start_weights, end_weights, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0):
-#
-#
-#    super(Age_Based_Scenario, self).__init__(name, portfolio, num_years, inflation_rate_perc=3.5, rebalance=True, addition_per_year=0.0, addition_increase_perc=0.0)
-
 #
 # The Monte Carlo class
 #
@@ -497,28 +448,11 @@ class Monte_Carlo(object):
     ten = np.percentile(self.values, 10, interpolation='nearest')
     med_scenario = self.runs[self.raw_values.index(med)]
     tenth_scenario = self.runs[self.raw_values.index(ten)]
-    med_data = [p.value()/1000000 for p in med_scenario.history]
-    tenth_data = [p.value()/1000000 for p in tenth_scenario.history]
-    # Plot data:
+
+    # Plot the median and 10th percentile scenario:
     f = plt.figure()
-    if smooth:
-      amount = min(9, int(len(med_data)/5))
-      med_data = savgol_filter(med_data, amount, 3)
-      tenth_data = savgol_filter(tenth_data, amount, 3)
-    plt.plot(med_data, lw=1, color='lightblue')
-    plt.fill_between(list(range(len(med_data))), med_data, interpolate=False, facecolor='lightblue', alpha=0.5)
-    plt.plot(tenth_data, lw=1, color='steelblue')
-    plt.fill_between(list(range(len(tenth_data))), tenth_data, interpolate=False, facecolor='steelblue', alpha=0.5)
-    plt.ylim(bottom=0.0) 
-    plt.xlim(0, len(med_data) - 1)
-    plt.xlabel('Year')
-    plt.ylabel('Portfolio Value ($M)')
-    plt.title('Portfolio Value Over Time')
-    plt.legend([ \
-      'Median (' + format_currency(statistics.median_low(self.values)) + ')', \
-      '10th Perc (' + format_currency(np.percentile(self.values, 10)) + ')', \
-    ])
-    plt.grid(True)
+    med_scenario.plot(figure=f, color='lightblue', label='Median', smooth=smooth)
+    tenth_scenario.plot(figure=f, color='steelblue', label='10th Perc', smooth=smooth)
 
 def show_plots():
   import matplotlib.pyplot as plt
@@ -544,5 +478,5 @@ if __name__== "__main__":
   mc.run(250)
   print(str(mc))
   mc.histogram()
-  mc.plot(smooth=False)
+  mc.plot(smooth=True)
   show_plots()
