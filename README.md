@@ -1,5 +1,5 @@
 # stocker
-Simple Monte Carlo savings simulator
+An easy to use Monte Carlo savings and retirement planner.
 
 ## Examples
 
