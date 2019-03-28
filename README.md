@@ -22,3 +22,6 @@ pip install -r requirements.txt
 ```
 
 Then, simply clone this repository, add it to you path, and `include` it in your code.
+
+## Want to contribute?
+Please submit a *pull request* or *issue* with any questions you might have.
