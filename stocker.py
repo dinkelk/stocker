@@ -248,6 +248,7 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
       plt.figure()
     if smooth:
       amount = min(9, int(len(data)/5))
+      amount = int(amount/2) * 2 + 1
       order = 3
       if order >= amount:
         order = amount - 1
@@ -279,13 +280,11 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
     strn += str(self.history[-1])
     strn += "\n"
     strn += "Raw Metrics:\n"
-    strn += "Total Return: " + _format_percentage((self.uncorrected_history[-1].value() - self.uncorrected_history[0].value())/self.uncorrected_history[0].value()) + "\n"
     strn += "Ave Return: " + _format_percentage(sum(self.uncorrected_returns)/len(self.uncorrected_returns)) + "\n"
     strn += "Best Return: " + _format_percentage(max(self.uncorrected_returns)) + " (year " + str(self.returns.index(max(self.returns))) + ")\n"
     strn += "Worst Return: " + _format_percentage(min(self.uncorrected_returns)) + " (year " + str(self.returns.index(min(self.returns))) + ")\n"
     strn += "\n"
     strn += "Inflation Corrected Metrics at " + _format_percentage(self.inflation_rate) + ":\n" 
-    strn += "Total Return: " + _format_percentage((self.history[-1].value() - self.history[0].value())/self.history[0].value()) + "\n"
     strn += "Ave Return: " + _format_percentage(sum(self.returns)/len(self.returns)) + "\n"
     strn += "Best Return: " + _format_percentage(max(self.returns)) + " (year " + str(self.returns.index(max(self.returns))) + ")\n"
     strn += "Worst Return: " + _format_percentage(min(self.returns)) + " (year " + str(self.returns.index(min(self.returns))) + ")\n"
