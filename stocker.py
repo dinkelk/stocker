@@ -135,7 +135,7 @@ class Portfolio(object):
       if value > 0.0:
         strn += template.format(p.name, _format_percentage(p.value/value), str(p)) + "\n"
       else:
-        strn += template.format(p.name, _format_percentage(0.0), str(p)) + "\n"
+        strn += template.format(p.name, _format_percentage(w), str(p)) + "\n"
     strn += "-----------------------------------------------------------\n"
     strn += template.format("Total", "100.0% ", _format_currency(value)) + "\n"
     strn += "-----------------------------------------------------------\n"
@@ -186,54 +186,55 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
     self.uncorrected_history = [copy.deepcopy(self.portfolio)]
     self.returns = []
     self.uncorrected_returns = []
- 
+
   # Run the entire scenario:
   @abc.abstractmethod
   def run(self): pass
 
-  def save_portfolio_to_history(self, portfolio):
-    # Correct the values in the portfolio for inflation to report
-    # numbers in today's dollars:
-    # Using the present value function to calculate what our money is actually worth with
-    # inflation: http://financeformulas.net/present_value.html
-    year = len(self.history)
-    uncorrected_value = portfolio.value()
-    corrected_value = uncorrected_value*(1/(1 + self.inflation_rate)**year)
-    correction = corrected_value - uncorrected_value
-    p = copy.deepcopy(portfolio)
-    p.trade(correction)
-
-    # Save the corrected portfolio history:
-    self.history.append(p)
-    if self.history[-2].value() > 0.0:
-      return_perc = (self.history[-1].value() - self.history[-2].value())/self.history[-2].value()
-      self.returns.append(return_perc)
-    else:
-      self.returns.append(0.0)
-
-    # Save the uncorrected porfolio in the history:
-    self.uncorrected_history.append(copy.deepcopy(portfolio))
-    if self.uncorrected_history[-2].value() > 0.0:
-      return_perc = (self.uncorrected_history[-1].value() - self.uncorrected_history[-2].value())/self.uncorrected_history[-2].value()
-      self.uncorrected_returns.append(return_perc)
-    else:
-      self.uncorrected_returns.append(0.0)
-
-  def save_portfolios_to_history(self, portfolios):
-    for portfolio in portfolios:
-      self.save_portfolio_to_history(portfolio)
-
   # Helper method to simulate a single time step:
-  def simulate(self):
+  def _run(self, start_year=0):
+    # Get current value:
+    uncorrected_prev_value = self.portfolio.value()
+
     # Simulate a year of growth:
     self.portfolio.simulate()
+
+    # Get the new value:
+    uncorrected_value = self.portfolio.value()
 
     # Rebalance portfolio to match original allocation weights:
     if self.rebalance:
       self.portfolio.rebalance()
 
-    # Save portfolio:
-    self.save_portfolio_to_history(self.portfolio)
+    # Correct the values in the portfolio for inflation to report
+    # numbers in today's dollars:
+    # Using the present value function to calculate what our money is actually worth with
+    # inflation: http://financeformulas.net/present_value.html
+    year = len(self.history) + start_year
+    assert year >= 0, "Year cannot be negative."
+    corrected_value = uncorrected_value*(1/(1 + self.inflation_rate)**year)
+    correction = corrected_value - uncorrected_value
+    p = copy.deepcopy(self.portfolio)
+    p.trade(correction)
+
+    # Save the corrected portfolio history:
+    self.history.append(p)
+    corrected_prev_value = uncorrected_prev_value
+    if year > 0:
+      corrected_prev_value = uncorrected_prev_value*(1/(1 + self.inflation_rate)**(year-1))
+    if corrected_prev_value > 0.0:
+      return_perc = (corrected_value - corrected_prev_value)/corrected_prev_value
+      self.returns.append(return_perc)
+    else:
+      self.returns.append(0.0)
+
+    # Save the uncorrected porfolio in the history:
+    self.uncorrected_history.append(copy.deepcopy(self.portfolio))
+    if uncorrected_prev_value > 0.0:
+      return_perc = (uncorrected_value - uncorrected_prev_value)/uncorrected_prev_value
+      self.uncorrected_returns.append(return_perc)
+    else:
+      self.uncorrected_returns.append(0.0)
 
   def plot(self, figure=None, color='steelblue', label="Value", smooth=True):
     import matplotlib.pyplot as plt
@@ -316,7 +317,7 @@ class Scenario(_Scenario_Base):
     # Call the base class init:
     super(Scenario, self).__init__(name, num_years, portfolio, inflation_rate_perc, rebalance)
 
-  def run(self):
+  def _run(self, start_year=0):
     to_add = self.addition
     for x in range(self.num_years):
       # Calculate new weights and rebalance portfolio:
@@ -330,7 +331,10 @@ class Scenario(_Scenario_Base):
         self.portfolio.trade(to_add)
 
       # Run the base class simulation:
-      super(Scenario, self).simulate()
+      super(Scenario, self)._run(start_year)
+
+  def run(self):
+    self._run()
 
 # Piecewise scenario:
 # This scenario allows the combinations of other scenarios in a piecewise
@@ -351,6 +355,7 @@ class Piecewise_Scenario(_Scenario_Base):
 
   def run(self):
     value = self.scenarios[0].portfolio.value()
+    year = 0
     for scenario in self.scenarios:
       # First zero the scenario portfolio value:
       scenario.portfolio.trade(-1*scenario.portfolio.value())
@@ -360,13 +365,17 @@ class Piecewise_Scenario(_Scenario_Base):
       scenario.portfolio.trade(value)
 
       # Run scenario:
-      scenario.run()
+      scenario._run(year)
+      year += len(scenario.history) - 1
 
       # Save the final portfolio value:
       value = scenario.portfolio.value()
 
       # Save data:
-      self.save_portfolios_to_history(scenario.uncorrected_history[1:])
+      self.history.extend(copy.deepcopy(scenario.history[1:]))
+      self.uncorrected_history.extend(copy.deepcopy(scenario.uncorrected_history[1:]))
+      self.returns.extend(copy.deepcopy(scenario.returns))
+      self.uncorrected_returns.extend(copy.deepcopy(scenario.uncorrected_returns))
 
 #
 # The Monte Carlo class

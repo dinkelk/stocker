@@ -24,7 +24,7 @@ if __name__== "__main__":
     name="Initial Accumulation", \
     portfolio=all_stocks_portfolio, \
     num_years=15, \
-    annual_contribution=15000, \
+    annual_contribution=16000, \
     annual_contribution_increase_perc=2.0
   )
 
