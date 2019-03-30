@@ -15,7 +15,7 @@ By running many simulations of the same scenario, a well formed distribution of 
 
 ## Usage
 
-Let's plan for retirement. Below we define a $250,000 portfolio made up of 60% US stocks and 40% US Bonds:
+Let's plan for retirement. Below we define a $250,000 portfolio made up of 60% US stocks and 40% US Bonds. Our goal is to grow this to over 1 million dollars by retirement:
 
 ```
 stocks_and_bonds_portfolio = Portfolio(
@@ -118,10 +118,10 @@ retirement_scenario.plot(smooth=True) # Enable smoothing to hide some volatility
 
 ![Portfolio Value Over Time](doc/images/figure_1.png?raw=true "Portfolio Value Over Time")
 
-This single result is promising, but it only represents one possible outcome. The volatility of these underlying investments may perform much differently on subsequent runs. To get an idea of how this portfolio performs on average, we need to run this scenario many more times. The following code uses the Monte Carlo class to run 400 simulations of the scenario and compare the results to our savings goal of 1 million dollars:
+This single result is promising, but it only represents one possible outcome. The volatility of the underlying investments may produce much different results on subsequent runs. To get an idea of how this portfolio performs on average, we need to run this scenario many more times. The following code uses the Monte Carlo class to run 400 simulations of the scenario and compare the results to our savings goal of 1 million dollars:
 
 ```
-mc = stocker.Monte_Carlo(retirement_scenario)
+mc = Monte_Carlo(retirement_scenario)
 mc.run(n=400)
 print(mc.results(goal=1000000))
 ```
@@ -151,7 +151,7 @@ Savings Goal: $1,000,000.00
 Likelihood of Meeting Goal: 88.8%
 ```
 
-Note that the median value is around 1.8 million dollars with a mean absolute deviation (MAD) of 580 thousand dollars. This is well above our goal of 1 million dollars. By analyzing the results from all 400 scenarios, stocker reports that the likelihood of meeting our 1 million dollar goal is 88.8% using our portfolio and savings plan.
+Note that the median value is around $1,800,000 dollars with a mean absolute deviation (MAD) of around $580,000. This is well above our goal of 1 million dollars, and the variability is acceptable. By analyzing the results from all 400 scenarios, stocker reports that the likelihood of meeting our 1 million dollar goal is 88.8% using our portfolio and savings plan.
 
 To get a better feel for the results we can produce a few useful plots. The first is a historgram which shows the distribution of the final portfolio values for each of the 400 runs.
 
@@ -170,6 +170,8 @@ stocker.show_plots()
 ```
 
 ![Portfolio Value Over Time](doc/images/figure_3.png?raw=true "Portfolio Value Over Time")
+
+Stocker can also be used to simulate the distribution phase of retirement, age-based portfolios whose allocation gradually changes over time, and much more. See the [examples](examples/) for more.
 
 ## Examples
 
