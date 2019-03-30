@@ -116,7 +116,7 @@ Great! This was a profitable simulation. The final value of our portfolio was ab
 retirement_scenario.plot(smooth=True) # Enable smoothing to hide some volatility
 ```
 
-![Alt text](relative/path/to/img.jpg?raw=true "Title")
+![Alt text](doc/images/figure_1.png?raw=true "Portfolio Value Over Time")
 
 This single result is promising, but it only represents one possible outcome. The volatility of these underlying investments may perform much differently on subsequent runs. To get an idea of how this portfolio performs on average, we need to run this scenario many more times. The following code uses the Monte Carlo class to run 400 simulations of the scenario and compare the results to our savings goal of 1 million dollars:
 
