@@ -326,8 +326,8 @@ class Scenario(_Scenario_Base):
         self.portfolio.rebalance(new_weights)
 
       # Calculate amount to add to portfolio:
-      to_add += abs(to_add)*self.addition_increase
-      if to_add > 0.0:
+      to_add += to_add*self.addition_increase
+      if to_add != 0.0:
         self.portfolio.trade(to_add)
 
       # Run the base class simulation:
@@ -401,7 +401,10 @@ class Monte_Carlo(object):
     # Remove high outliers:
     med = statistics.median_low(self.raw_values)
     MAD = astropy.stats.median_absolute_deviation(self.raw_values)
-    self.values = [v for v in self.raw_values if v < med + 4*MAD]
+    if MAD > 0.0:
+      self.values = [v for v in self.raw_values if v < med + 4*MAD]
+    else:
+      self.values = self.raw_values
 
   def results(self, goal=None):
     strn = "Monte Carlo Results for the '" + self.scenario.name + "' Scenario:\n"
@@ -422,7 +425,7 @@ class Monte_Carlo(object):
     strn += "  90th Perc: " + _format_currency(np.percentile(self.values, 90, interpolation='nearest')) + "\n"
     strn += "  Maximum:   " + _format_currency(max(self.values)) + "\n"
     strn += "\n"
-    if goal:
+    if goal != None:
       good_runs = len([v for v in self.raw_values if v > goal])
       strn += "Savings Goal: " + _format_currency(goal) + "\n"
       strn += "Likelihood of Meeting Goal: " + _format_percentage(good_runs/len(self.raw_values)) + "\n"

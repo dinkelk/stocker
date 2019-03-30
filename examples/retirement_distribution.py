@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Include the directory up in the path:
 import sys
 sys.path.insert(0,'..')
@@ -7,24 +9,43 @@ import stocker
 
 # Main:
 if __name__== "__main__":
-  #sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, International_Stocks, US_Bonds, International_Bonds, Alternatives, Cash], weights=[30, 15, 20, 10, 5, 1])
-  start_weights=[1, 0]
-  end_weights=[0, 1]
-  sample_portfolio = stocker.Portfolio(name="Sample", value=100000.0, positions=[stocker.US_Stocks, stocker.US_Bonds], weights=start_weights)
-  #sample_portfolio = Portfolio(name="Sample", value=100000.0, positions=[US_Stocks, International_Stocks], weights=[70, 0])
-  #sample_portfolio = Portfolio(name="Stocks", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[50, 40, 5, 5])
-  #sample_portfolio2 = Portfolio(name="Bonds", value=100000.0, positions=[US_Stocks, US_Bonds, Alternatives, Cash], weights=[0, 40, 5, 5])
-  accumulation = stocker.Scenario("Accumulation", sample_portfolio, num_years=35, addition_per_year=15000.0, addition_increase_perc=2.0, end_weights=end_weights)
-  retirement = accumulation
-  #distribution = Scenario("Distribution", sample_portfolio, num_years=30, addition_per_year=80000.0, addition_increase_perc=-3.5)
-  #retirement = Piecewise_Scenario("Retirement", [accumulation, distribution])
-  retirement.run()
-  print(retirement.results())
-  retirement.plot(smooth=False)
 
-  mc = stocker.Monte_Carlo(retirement)
-  mc.run(250)
-  print(mc.results(goal = 1000000))
+  # We have accumulated a portfolio of 1.5M dollars invested in 50/50 stocks
+  # and bonds.
+  stocks_and_bonds_portfolio = stocker.Portfolio(
+    name="Stocks and Bonds", \
+    value=1500000, \
+    positions=[stocker.US_Stocks, stocker.International_Stocks, stocker.US_Bonds, stocker.International_Bonds], \
+    weights=[7, 3, 7, 3] \
+  )
+
+  # We are going to live on annual distributions of 75K, increasing by 2% annually
+  # to curb some inflation. We want to make this portfolio last for at lleast 30 years
+  # during retirement.
+  retirement_distribution = stocker.Scenario(
+    name="Retirement Distribution", \
+    portfolio=stocks_and_bonds_portfolio, \
+    num_years=30, \
+    annual_contribution=-75000, \
+    annual_contribution_increase_perc=2.0, \
+  )
+
+  # Run the retirement scenario once and print and plot the results:
+  retirement_distribution.run()
+  print(retirement_distribution.results())
+  retirement_distribution.plot(smooth=False)
+
+  # Run a monte carlo simulation of this scenario with 400 iterations:
+  mc = stocker.Monte_Carlo(retirement_distribution)
+  mc.run(n=400)
+
+  # Print the results of the monte carlo simulation, showing the probablility
+  # of not running out of funds before the end of 30 years.
+  print(mc.results(goal=0.0))
+
+  # Create the monte carlo plots:
   mc.histogram()
   mc.plot(smooth=True)
+
+  # Show all the stocker plots:
   stocker.show_plots()
