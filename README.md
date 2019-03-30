@@ -153,7 +153,7 @@ Likelihood of Meeting Goal: 88.8%
 
 Note that the median value is around $1,800,000 dollars with a mean absolute deviation (MAD) of around $580,000. This is well above our goal of 1 million dollars, and the variability is acceptable. By analyzing the results from all 400 scenarios, stocker reports that the likelihood of meeting our 1 million dollar goal is 88.8% using our portfolio and savings plan.
 
-To get a better feel for the results we can produce a few useful plots. The first is a historgram which shows the distribution of the final portfolio values for each of the 400 runs.
+To get a better feel for the results we can produce a few useful plots. The first is a histogram which shows the distribution of the final portfolio values for each of the 400 runs.
 
 ```
 mc.histogram()
