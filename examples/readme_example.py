@@ -18,6 +18,7 @@ if __name__== "__main__":
     positions=[stocker.US_Stocks, stocker.US_Bonds], \
     weights=[6, 4]
   )
+  print(str(stocks_and_bonds_portfolio))
 
   # Define a retirement savings scenario that lasts for 30 years. We will
   # contribute 10K annually, increasing our svings amount by 2% every year.
