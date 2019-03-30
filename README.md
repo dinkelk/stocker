@@ -54,7 +54,7 @@ Cash = Position("Cash", ave_return=3.4, std_dev=3.1)
 Next, we can define a savings scenario that uses the portfolio we defined earlier. The following scenario describes the accumulation phase of a retirement plan that compounds for a period of 30 years. We are planning to contribute an additional $20,000 to the portfolio annually, increasing this contribution amount by 2% every year.
 
 ```
-retirement_scenario = stocker.Scenario(
+retirement_scenario = Scenario(
     name="Retirement Accumulation", \
     portfolio=stocks_and_bonds_portfolio, \
     num_years=30, \
@@ -119,7 +119,7 @@ stocker.show_plots()
 
 ![Portfolio Value Over Time](doc/images/figure_1.png?raw=true "Portfolio Value Over Time")
 
-This single result is promising, but it only represents one possible outcome. The volatility of the underlying investments may produce much different results on subsequent runs. To get an idea of how this portfolio performs on average, we need to run this scenario many more times. The following code uses the Monte Carlo class to run 400 simulations of the scenario and compare the results to our savings goal of 1 million dollars:
+This single result is promising, but it only represents one possible outcome. The volatility of the underlying investments may produce much different results on subsequent runs. To get an idea of how this portfolio performs on average, we need to run this scenario many more times. The following code uses the `Monte_Carlo` class to run 400 simulations of the scenario and compare the results to our savings goal of 1 million dollars:
 
 ```
 mc = Monte_Carlo(retirement_scenario)
