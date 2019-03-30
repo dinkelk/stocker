@@ -15,7 +15,7 @@ By running many simulations of the same scenario, a well formed distribution of 
 
 ## Usage
 
-Let's plan for retirement. Below we define a portfolio made up of 60% US stocks and 40% US Bonds:
+Let's plan for retirement. Below we define a $250,000 portfolio made up of 60% US stocks and 40% US Bonds:
 
 ```
 stocks_and_bonds_portfolio = Portfolio(
@@ -23,8 +23,22 @@ stocks_and_bonds_portfolio = Portfolio(
     value=250000, \
     positions=[US_Stocks, US_Bonds], \
     weights=[6, 4]
- )
- ```
+)
+print(str(stocks_and_bonds_portfolio))
+```
+
+which produces the following output:
+
+```
+-----------------------------------------------------------
+Position                      | Allocation |          Value
+-----------------------------------------------------------
+Domestic Equities             |       60.0%|    $150,000.00
+Domestic Fixed Income         |       40.0%|    $100,000.00
+-----------------------------------------------------------
+Total                         |     100.0% |    $250,000.00
+-----------------------------------------------------------
+```
  
 In addition to `US_Stocks` and `US_Bonds`, stocker provides a few other positions based on the performance of historical asset classes. Feel free to mix these into your portfolio, or define your own `Position` with its own average return and standard deviation:
 
