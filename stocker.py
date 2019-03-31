@@ -379,6 +379,16 @@ class Piecewise_Scenario(_Scenario_Base):
       self.returns.extend(copy.deepcopy(scenario.returns))
       self.uncorrected_returns.extend(copy.deepcopy(scenario.uncorrected_returns))
 
+
+def _remove_outliers(values):
+  # Remove high outliers:
+  med = statistics.median_low(values)
+  MAD = astropy.stats.median_absolute_deviation(values)
+  if MAD > 0.0:
+    return [v for v in values if v < med + 4*MAD]
+  else:
+    return values
+
 #
 # The Monte Carlo class
 #
@@ -400,15 +410,11 @@ class Monte_Carlo(object):
       self.raw_values.append(new_scenario.history[-1].value())
       self.runs.append(new_scenario)
 
-    # Remove high outliers:
-    med = statistics.median_low(self.raw_values)
-    MAD = astropy.stats.median_absolute_deviation(self.raw_values)
-    if MAD > 0.0:
-      self.values = [v for v in self.raw_values if v < med + 4*MAD]
+  def results(self, goal=None, remove_outliers=True):
+    if remove_outliers:
+      self.values = _remove_outliers(self.raw_values)
     else:
       self.values = self.raw_values
-
-  def results(self, goal=None):
     strn = "Monte Carlo Results for the '" + self.scenario.name + "' Scenario:\n"
     strn += "\n"
     strn += "Number of Runs: " + str(len(self.runs)) + "\n"
@@ -433,7 +439,11 @@ class Monte_Carlo(object):
       strn += "Likelihood of Meeting Goal: " + _format_percentage(good_runs/len(self.raw_values)) + "\n"
     return strn
 
-  def histogram(self):
+  def histogram(self, remove_outliers=True):
+    if remove_outliers:
+      self.values = _remove_outliers(self.raw_values)
+    else:
+      self.values = self.raw_values
     import matplotlib.pyplot as plt
     values = [v/1000000.0 for v in self.values]
     weights = np.ones_like(values)/float(len(values))*100.0
