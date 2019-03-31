@@ -38,8 +38,10 @@ class Position(object):
     # Calculate return as ave return + normal distribution of std deviation:
     this_return = 0.0
     if self.value > 0.0:
-      this_return = self.ave_return*self.value + np.random.normal(0, self.value*self.std_dev)
-    self.value = self.value + this_return
+      this_return += self.ave_return*self.value
+      if self.std_dev > 0.0:
+        this_return += np.random.normal(0, self.value*self.std_dev)
+    self.value += this_return
     if self.value < 0.0:
       self.value = 0.0
 
