@@ -385,9 +385,16 @@ def _remove_outliers(values):
   med = statistics.median_low(values)
   MAD = astropy.stats.median_absolute_deviation(values)
   if MAD > 0.0:
-    return [v for v in values if v < med + 4*MAD]
-  else:
-    return values
+    values = [v for v in values if v < (med + 4*MAD)]
+    med = statistics.median_low(values)
+    MAD = astropy.stats.median_absolute_deviation(values)
+    if MAD > 0.0:
+      values = [v for v in values if v < (med + 4*MAD)]
+      med = statistics.median_low(values)
+      MAD = astropy.stats.median_absolute_deviation(values)
+      if MAD > 0.0:
+        values = [v for v in values if v < (med + 4*MAD)]
+  return values
 
 #
 # The Monte Carlo class
