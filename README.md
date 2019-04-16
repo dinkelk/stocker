@@ -21,7 +21,7 @@ Let's plan for retirement. Below we define a $250,000 portfolio made up of 60% U
 stocks_and_bonds_portfolio = Portfolio(
     name="Retirement Savings", \
     value=250000, \
-    positions=[US_Stocks, US_Bonds], \
+    positions=[US_Stocks(), US_Bonds()], \
     weights=[6, 4]
 )
 print(str(stocks_and_bonds_portfolio))
@@ -40,7 +40,7 @@ Total                         |     100.0% |    $250,000.00
 -----------------------------------------------------------
 ```
  
-In addition to `US_Stocks` and `US_Bonds`, stocker provides a few other positions based on the performance of historical asset classes. Feel free to mix these into your portfolio, or because "past performance does not indicate future returns," feel free to define your own `Position` with its own average return and standard deviation:
+In addition to `US_Stocks()` and `US_Bonds()`, stocker provides a few other positions based on the performance of historical asset classes. Feel free to mix these into your portfolio, or because "past performance does not indicate future returns," feel free to define your own `Position` with its own average return and standard deviation:
 
 ```
 US_Stocks = Position("Domestic Equities", ave_return=10.2, std_dev=19.8)
@@ -124,7 +124,7 @@ This single result is promising, but it only represents one possible outcome. Th
 ```
 mc = Monte_Carlo(retirement_scenario)
 mc.run(n=400)
-print(mc.results(goal=1000000))
+print(mc.results(goal=1000000, remove_outliers=True))
 ```
 
 The code above produces the following output:
