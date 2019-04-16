@@ -15,7 +15,7 @@ if __name__== "__main__":
   stocks_and_bonds_portfolio = stocker.Portfolio(
     name="Stocks and Bonds", \
     value=1500000, \
-    positions=[stocker.US_Stocks, stocker.International_Stocks, stocker.US_Bonds, stocker.International_Bonds], \
+    positions=[stocker.US_Stocks(), stocker.International_Stocks(), stocker.US_Bonds(), stocker.International_Bonds()], \
     weights=[7, 3, 7, 3] \
   )
 

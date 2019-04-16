@@ -15,7 +15,7 @@ if __name__== "__main__":
   stocks_and_bonds_portfolio = stocker.Portfolio(
     name="Retirement Savings", \
     value=250000, \
-    positions=[stocker.US_Stocks, stocker.US_Bonds], \
+    positions=[stocker.US_Stocks(), stocker.US_Bonds()], \
     weights=[6, 4]
   )
   print(str(stocks_and_bonds_portfolio))
@@ -41,7 +41,7 @@ if __name__== "__main__":
 
   # Print the results of the monte carlo simulation, showing the probablility
   # of hitting a 1M dollar accumulation goal:
-  print(mc.results(goal=1000000))
+  print(mc.results(goal=1000000, remove_outliers=True))
 
   # Create the monte carlo plots:
   mc.histogram()

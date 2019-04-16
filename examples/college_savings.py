@@ -13,7 +13,7 @@ if __name__== "__main__":
   # Let's save in a combination of US stocks and US bonds for college. Weight the
   # initial portfolio towards 100% stocks, but gradually transition to 100% bonds
   # over the coarse of the savings period. We can seed the portfolio with $5000.
-  positions = [stocker.US_Stocks, stocker.US_Bonds]
+  positions = [stocker.US_Stocks(), stocker.US_Bonds()]
   start_weights = [1, 0]
   end_weights = [0, 1]
   college_529_portfolio = stocker.Portfolio(name="529", value=5000.0, positions=positions, weights=start_weights)

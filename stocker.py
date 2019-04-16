@@ -65,12 +65,33 @@ class Position(object):
 # average annual performance included in source data: domestic equities since 1926, international equities since
 # 1970, domestic fixed since 1926, international fixed since 2002, alternatives since 1970 and cash since 1926.
 #
-US_Stocks = Position("Domestic Equities", ave_return=10.2, std_dev=19.8)
-International_Stocks = Position("International Equities", ave_return=9.2, std_dev=22.1)
-US_Bonds = Position("Domestic Fixed Income", ave_return=5.3, std_dev=5.8)
-International_Bonds = Position("International Fixed Income", ave_return=5.5, std_dev=9.1)
-Alternatives = Position("Alternatives", ave_return=6.1, std_dev=16.1)
-Cash = Position("Cash", ave_return=3.4, std_dev=3.1)
+def _predefined_position(name, ave_return, std_dev):
+  def inner(value=0.0):
+    return Position(name, ave_return, std_dev, value)
+  return inner
+
+US_Stocks = _predefined_position("Domestic Equities", ave_return=10.2, std_dev=19.8)
+International_Stocks = _predefined_position("International Equities", ave_return=9.2, std_dev=22.1)
+US_Bonds = _predefined_position("Domestic Fixed Income", ave_return=5.3, std_dev=5.8)
+International_Bonds = _predefined_position("International Fixed Income", ave_return=5.5, std_dev=9.1)
+Alternatives = _predefined_position("Alternatives", ave_return=6.1, std_dev=16.1)
+Cash = _predefined_position("Cash", ave_return=3.4, std_dev=3.1)
+
+#
+# More historical returns from https://www.bogleheads.org/wiki/Historical_and_expected_returns:
+#
+# Series	               Geometric Mean	Arithmetic Mean	Standard Deviation
+# Large Company Stocks	                10.4%	          12.3%	             20.2%
+# Small Company Stocks	                12.6%	          17.4%	             32.9%
+# Long-term Corporate Bonds	         5.9%	           6.2%	              8.5%
+# Long-term Government Bonds	         5.3%	           5.5%	              5.7%
+# U.S. Treasury Bills	                 3.7%	           3.8%	              3.1%
+#
+Large_Cap_Stocks = _predefined_position("Large Company Stocks", ave_return=10.4, std_dev=20.2)
+Small_Cap_Stocks = _predefined_position("Small Company Stocks", ave_return=12.6, std_dev=32.9)
+Long_Term_Corp_Bonds = _predefined_position("Long-term Corporate Bonds", ave_return=5.9, std_dev=8.5)
+Long_Term_Gov_Bonds = _predefined_position("Long-term Government Bonds", ave_return=5.3, std_dev=5.7)
+US_Treasury_Bills = _predefined_position("U.S. Treasury Bills", ave_return=3.8, std_dev=3.1)
 
 #
 # Define a portfolio:
@@ -149,18 +170,22 @@ class Portfolio(object):
 # 
 # Define some common potfolios:
 #
+def _predefined_portfolio(name, positions, weights):
+  def inner(value=0.0):
+    return Portfolio(name, positions, weights, value)
+  return inner
 # All Stocks portfolio 70% US, 30% International
-All_Stocks = Portfolio(name="All Stocks", positions=[US_Stocks, International_Stocks], weights=[7, 3])
+All_Stocks = _predefined_portfolio(name="All Stocks", positions=[US_Stocks(), International_Stocks()], weights=[7, 3])
 # All Bonds portfolio 70% US, 30% International
-All_Bonds = Portfolio(name="All Bonds", positions=[US_Bonds, International_Bonds], weights=[7, 3])
+All_Bonds = _predefined_portfolio(name="All Bonds", positions=[US_Bonds(), International_Bonds()], weights=[7, 3])
 # All Stocks portfolio 100% US
-All_US_Stocks = Portfolio(name="All Stocks", positions=[US_Stocks], weights=[1])
+All_US_Stocks = _predefined_portfolio(name="All Stocks", positions=[US_Stocks()], weights=[1])
 # All Bonds portfolio 100% US
-All_US_Bonds = Portfolio(name="All Bonds", positions=[US_Bonds], weights=[1])
+All_US_Bonds = _predefined_portfolio(name="All Bonds", positions=[US_Bonds()], weights=[1])
 # 50/50 Stocks and bonds with 70% US and 30% International
-Fifty_Fifty = Portfolio(name="All Bonds", positions=[US_Stocks, International_Stocks, US_Bonds, International_Bonds], weights=[7, 3, 7, 3])
+Fifty_Fifty = _predefined_portfolio(name="All Bonds", positions=[US_Stocks(), International_Stocks(), US_Bonds(), International_Bonds()], weights=[7, 3, 7, 3])
 # 60/40 Stocks and bonds with 70% US and 30% International
-Sixty_Forty = Portfolio(name="All Bonds", positions=[US_Stocks, International_Stocks, US_Bonds, International_Bonds], weights=[7*6, 3*6, 7*4, 3*4])
+Sixty_Forty = _predefined_portfolio(name="All Bonds", positions=[US_Stocks(), International_Stocks(), US_Bonds(), International_Bonds()], weights=[7*6, 3*6, 7*4, 3*4])
 
 #
 # Define Scenarios:
@@ -238,7 +263,7 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
     else:
       self.uncorrected_returns.append(0.0)
 
-  def plot(self, figure=None, color='steelblue', label="Value", smooth=True):
+  def plot(self, figure=None, color='steelblue', label="Value", smooth=False):
     import matplotlib.pyplot as plt
     from scipy.signal import savgol_filter
 
@@ -417,7 +442,7 @@ class Monte_Carlo(object):
       self.raw_values.append(new_scenario.history[-1].value())
       self.runs.append(new_scenario)
 
-  def results(self, goal=None, remove_outliers=True):
+  def results(self, goal=None, remove_outliers=False):
     if remove_outliers:
       self.values = _remove_outliers(self.raw_values)
     else:
@@ -475,7 +500,7 @@ class Monte_Carlo(object):
     plt.title('Final Portfolio Value Probability Distribution (n=' + str(len(self.runs)) + ")")
     plt.grid(True)
 
-  def plot(self, smooth=True):
+  def plot(self, smooth=False):
     import matplotlib.pyplot as plt
 
     # Find the median and 10th percentile data sets:

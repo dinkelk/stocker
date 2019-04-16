@@ -17,7 +17,7 @@ if __name__== "__main__":
   all_stocks_portfolio = stocker.Portfolio(
     name="Stocks", \
     value=0.0, \
-    positions=[stocker.US_Stocks, stocker.International_Stocks], \
+    positions=[stocker.US_Stocks(), stocker.International_Stocks()], \
     weights=[7, 3]
   )
   all_stocks_accumulation_phase = stocker.Scenario(
@@ -35,7 +35,7 @@ if __name__== "__main__":
   end_weights = [7, 3, 7, 3]
   stocks_and_bonds_portfolio = stocker.Portfolio(
     name="Stocks and Bonds", \
-    positions=[stocker.US_Stocks, stocker.International_Stocks, stocker.US_Bonds, stocker.International_Bonds], \
+    positions=[stocker.US_Stocks(), stocker.International_Stocks(), stocker.US_Bonds(), stocker.International_Bonds()], \
     weights=[7, 3, 0, 0]
   )
   stocks_and_bonds_accumulation_phase = stocker.Scenario(
@@ -52,7 +52,7 @@ if __name__== "__main__":
   retirement_portfolio = stocker.Portfolio(
     name="Stocks and Bonds", \
     value=1500000, \
-    positions=[stocker.US_Stocks, stocker.International_Stocks, stocker.US_Bonds, stocker.International_Bonds], \
+    positions=[stocker.US_Stocks(), stocker.International_Stocks(), stocker.US_Bonds(), stocker.International_Bonds()], \
     weights=[7, 3, 7, 3] \
   )
 
