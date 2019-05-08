@@ -14,6 +14,17 @@ def _format_percentage(decimal):
   return ("%0.1f%%" % (decimal*100.0))
 
 #
+# Inflation helper functions:
+#
+def present_value(value, year, rate=0.035):
+  assert year >= 0, "Year cannot be negative."
+  return value*(1/(1 + rate)**year)
+
+def future_value(value, year, rate=0.035):
+  assert year >= 0, "Year cannot be negative."
+  return value*(1 + rate)**year
+
+#
 # Define a positition
 #
 # A position consists of an named allocation to a specific 
@@ -24,12 +35,12 @@ class Position(object):
   # ave return and std are in percentage per time unit:
   def __init__(self, name, ave_return, std_dev, value=0.0):
     self.name = name
-    self.value = value
-    self.ave_return = ave_return/100.0
-    self.std_dev = std_dev/100.0
+    self.value = float(value)
+    self.ave_return = float(ave_return)/100.0
+    self.std_dev = float(std_dev)/100.0
 
   def trade(self, amount):
-    self.value += amount
+    self.value += float(amount)
     if self.value < 0.0:
       self.value = 0.0
 
@@ -199,8 +210,8 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
   def __init__(self, name, num_years, portfolio, inflation_rate_perc=3.5, rebalance=True):
     self.name = name
     self.portfolio = copy.deepcopy(portfolio)
-    self.num_years = num_years
-    self.inflation_rate = inflation_rate_perc/100.0
+    self.num_years = int(num_years)
+    self.inflation_rate = float(inflation_rate_perc)/100.0
     self.rebalance = rebalance
     self.history = [copy.deepcopy(portfolio)]
     self.uncorrected_history = [copy.deepcopy(portfolio)]
@@ -239,7 +250,7 @@ class _Scenario_Base(metaclass=abc.ABCMeta):
     # inflation: http://financeformulas.net/present_value.html
     year = len(self.history) + start_year
     assert year >= 0, "Year cannot be negative."
-    corrected_value = uncorrected_value*(1/(1 + self.inflation_rate)**year)
+    corrected_value = present_value(uncorrected_value, year, self.inflation_rate)
     correction = corrected_value - uncorrected_value
     p = copy.deepcopy(self.portfolio)
     p.trade(correction)
