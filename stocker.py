@@ -104,6 +104,45 @@ Long_Term_Corp_Bonds = _predefined_position("Long-term Corporate Bonds", ave_ret
 Long_Term_Gov_Bonds = _predefined_position("Long-term Government Bonds", ave_return=5.3, std_dev=5.7)
 US_Treasury_Bills = _predefined_position("U.S. Treasury Bills", ave_return=3.8, std_dev=3.1)
 
+
+# 
+# More historical returns from Morningstar:
+#   http://awgmain.morningstar.com/webhelp/FAQs/What_assumptions_goalplans.htm
+#
+# We estimate these assumptions based on a combination of the current market information and 
+# the historical data going back to 1926 for US equities and 1970 for bonds.  The table below 
+# lists the indices, arithmetic return, and standard deviation we use for each asset class:
+#
+# Asset Class                      Return Data Series (Benchmark)  Expected Return  Standard Deviation
+# U.S. Large-cap Growth Stocks             Russell Top 200 Growth            8.25%              21.82%
+# U.S. Large-cap Value Stocks               Russell Top 200 Value            9.60%              17.47%
+# U.S. Mid-cap Growth Stocks                Russell Midcap Growth           10.41%              23.22%
+# U.S. Mid-cap Value Stocks                  Russell Midcap Value           12.48%              19.17%
+# U.S. Small-cap Growth Stocks                Russell 2000 Growth            9.98%              27.62%
+# U.S. Small-cap Value Stocks                  Russell 2000 Value           13.29%              22.46%
+# Non-U.S. Dev Stocks                                   MSCI EAFE           10.02%              20.62%
+# Non-U.S. Emrg Stocks                        MMSCI Emerging Mkts           14.35%              29.65%
+# U.S. Investment Grade Bonds             Barclays US Agg Bond TR            3.36%               7.08%
+# U.S. High-Yield Bonds        Barclay US Corporate High Yield TR            7.37%              11.33%
+# Non-U.S. Dev Bonds                         Citi WGBI NonUSD USD            3.08%              11.22%
+# Cash                              Citi Treasurey Bill 3 Mon USD            0.97%               1.67%
+# Commodities                                 DJ UBS Commodity TR            4.48%              17.86%
+# U.S. Real Estate                             FTSE NAREIT-Equity            8.92%              23.55%
+US_Large_Cap_Growth_Stocks = _predefined_position("U.S. Large-cap Growth Stocks", ave_return=8.25, std_dev=21.82)
+US_Large_Cap_Value_Stocks = _predefined_position("U.S. Large-cap Value Stocks", ave_return=9.60, std_dev=17.47)
+US_Mid_Cap_Growth_Stocks = _predefined_position("U.S. Mid-cap Growth Stocks", ave_return=10.41, std_dev=23.22)
+US_Mid_Cap_Value_Stocks = _predefined_position("U.S. Mid-cap Value Stocks", ave_return=12.48, std_dev=19.17)
+US_Small_Cap_Growth_Stocks = _predefined_position("U.S. Small-cap Growth Stocks", ave_return=9.98, std_dev=27.62)
+US_Small_Cap_Value_Stocks = _predefined_position("U.S. Small-cap Value Stocks", ave_return=13.29, std_dev=22.46)
+International_Dev_Stocks = _predefined_position("Non-U.S. Dev Stocks", ave_return=10.02, std_dev=20.62)
+International_Emrg_Stocks = _predefined_position("Non-U.S. Emrg Stocks", ave_return=14.35, std_dev=29.65)
+US_Investment_Grd_Bonds = _predefined_position("U.S. Investment Grade Bonds", ave_return=3.36, std_dev=7.08)
+US_High_Yield_Bonds = _predefined_position("U.S. High-Yield Bonds", ave_return=7.37, std_dev=11.33)
+International_Dev_Bonds = _predefined_position("Non-U.S. Dev Bonds", ave_return=3.08, std_dev=11.22)
+Three_Mon_Treasury_Bills = _predefined_position("Treasurey Bill 3 Mon", ave_return=0.97, std_dev=1.67)
+Commodities = _predefined_position("Commodities", ave_return=4.48, std_dev=17.86)
+US_Real_Estate = _predefined_position("U.S. Real Estate", ave_return=8.92, std_dev=23.55)
+
 #
 # Define a portfolio:
 #
